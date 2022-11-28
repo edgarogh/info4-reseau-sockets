@@ -1,9 +1,8 @@
-#define MAX_USERNAME_LENGTH 6
-#define MESSAGE_MAX_LENGTH 20
+#include "constants.h"
 
 typedef struct {
     long date;
-    char author[MAX_USERNAME_LENGTH];
+    user_name author;
     char message[MESSAGE_MAX_LENGTH];
 } received_message;
 
@@ -29,12 +28,12 @@ typedef struct {
             SUBSCRIBE_RESULT_OK,
             SUBSCRIBE_RESULT_NOT_FOUND,
         } subscribe_result;
-        char subscription_entry[MAX_USERNAME_LENGTH]; // Contient que des 0 à la fin de l'énumération
+        user_name subscription_entry; // Contient que des 0 à la fin de l'énumération
         enum {
             KICK_REASON_CLOSING,
             KICK_REASON_PROTOCOL_ERROR,
         } kick;
-    }
+    };
 } message_s2c;
 
 /**
@@ -49,9 +48,9 @@ typedef struct {
         MESSAGE_C2S_PUBLISH,
     } tag;
     union {
-        char join_as[MAX_USERNAME_LENGTH];
-        char subscribe_to[MAX_USERNAME_LENGTH];
-        char unsubscribe_to[MAX_USERNAME_LENGTH];
+        user_name join_as;
+        user_name subscribe_to;
+        user_name unsubscribe_to;
         char publish[MESSAGE_MAX_LENGTH];
     };
 } message_c2s;

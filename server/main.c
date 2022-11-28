@@ -6,6 +6,8 @@
 #include <sys/epoll.h>
 #include <sys/socket.h>
 
+#include "constants.h"
+#include "database.h"
 #include "server.h"
 
 // Maximum d'évènements retournés par epoll lors d'un appel système
@@ -35,9 +37,8 @@ int main(int argc, char** argv) {
     assert(bind(server_socket, (struct sockaddr*) &address, sizeof(address)) >= 0);
     assert(listen(server_socket, 16) == 0);
 
-    struct sockaddr* client_address;
-    // accept(server_socket, &client_address, &sizeof(client_address));
-    
+    database_initialize();
+
     int epoll = epoll_create1(0);
     assert (epoll > 0);
     // EPOLLIN sur un socket d'écoute correspond à une connexion entrante
