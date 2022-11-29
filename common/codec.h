@@ -24,9 +24,10 @@ typedef struct {
             LOGIN_STATUS_ILLEGAL_NAME,
         } login_status;
         received_message received_message;
-        enum {
+        enum subscribe_result {
             SUBSCRIBE_RESULT_OK,
             SUBSCRIBE_RESULT_NOT_FOUND,
+            SUBSCRIBE_RESULT_UNCHANGED, // Si on suit déjà (resp. déjà désabonné)
         } subscribe_result;
         user_name subscription_entry; // Contient que des 0 à la fin de l'énumération
         enum {

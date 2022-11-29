@@ -2,8 +2,10 @@ drop table if exists twiiiiits;
 drop table if exists followings;
 drop table if exists users;
 
+pragma foreign_keys = on;
+
 create table users (
-    name text(6) not null,
+    name text(6) not null primary key,
     last_online long not null
 );
 
