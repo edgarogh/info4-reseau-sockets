@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "constants.h"
 #include "database.h"
@@ -79,6 +80,20 @@ void database_initialize() {
     // language=sqlite
     result = sqlite3_exec(db, "pragma foreign_keys = on", NULL, NULL, &sqlite_error_message);
     assert(result == SQLITE_OK);
+}
+
+void database_update_user(char* user, bool is_online) {
+    // language=sqlite
+    char* sql = "insert or replace into users values (?, ?)";
+    long date = is_online ? 0 : time(NULL);
+
+    sqlite3_stmt* stmt;
+    int result = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    assert(result == SQLITE_OK);
+    sqlite3_bind_text(stmt, 1, user, (int) strnlen(user, MAX_USERNAME_LENGTH), SQLITE_STATIC);
+    sqlite3_bind_int64(stmt, 2, date);
+    assert(sqlite3_step_all(stmt) == SQLITE_DONE);
+    sqlite3_finalize(stmt);
 }
 
 /**

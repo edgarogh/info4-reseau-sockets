@@ -11,6 +11,16 @@ typedef void* followee_iterator;
  */
 void database_initialize();
 
+/**
+ * Enregistre l'état d'un utilisateur dans la base de données (et le créé si besoin)
+ *
+ * Cette fonction devrait être appelée à la connexion de chaque utilisateur, sans quoi il risque d'être absent dans la
+ * base de données s'il s'agit de sa promise connexion, ce qui lui empêche de faire la plupart des actions.
+ * Cette fonction DOIT être appelée à la déconnexion de chaque utilisateur, afin d'enregistrer la date de déconnexion et
+ * de permettre de rattraper les twiiiiits manqués ultérieurement.
+ */
+void database_update_user(char* user, bool is_online);
+
 enum subscribe_result database_follow(char* follower, char* followee);
 enum subscribe_result database_unfollow(char* follower, char* followee);
 
