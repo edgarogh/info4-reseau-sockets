@@ -1,15 +1,17 @@
-add_executable(flash-server
+set(EXE_NAME ${CMAKE_PROJECT_NAME}-server)
+
+add_executable(${EXE_NAME}
     main.c
     database.c
     database.h
     server.h
 )
-target_link_libraries(flash-server common)
+target_link_libraries(${EXE_NAME} common)
 
 # SQLite
 include(FindSQLite3)
 include_directories(${SQLite3_INCLUDE_DIRS})
-target_link_libraries(flash-server ${SQLite3_LIBRARIES})
+target_link_libraries(${EXE_NAME} ${SQLite3_LIBRARIES})
 
 # Pour embarquer le fichier "init_db.sql" dans le binaire
 add_library(init_db_sql init_db_sql.o)
@@ -21,4 +23,4 @@ add_custom_command(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/init_db.sql
 )
-target_link_libraries(flash-server init_db_sql)
+target_link_libraries(${EXE_NAME} init_db_sql)

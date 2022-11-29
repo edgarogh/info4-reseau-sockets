@@ -1,2 +1,4 @@
-add_executable(flash-client main.c)
-target_link_libraries(flash-client common)
+set(EXE_NAME ${CMAKE_PROJECT_NAME}-client)
+
+add_executable(${EXE_NAME} main.c)
+target_link_libraries(${EXE_NAME} common)
