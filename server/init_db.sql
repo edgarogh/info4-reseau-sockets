@@ -17,7 +17,7 @@ create table followings (
 );
 
 create table twiiiiits (
-    long date not null,
+    date long not null,
     author text(6) not null references users (name) on delete cascade,
     message text(20) not null
 );

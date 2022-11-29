@@ -1,8 +1,16 @@
 #include <stdbool.h>
 
 #include "codec.h"
+#include "constants.h"
+
+typedef struct {
+    long date;
+    user_name author;
+    char message[MESSAGE_MAX_LENGTH];
+} database_twiiiiit;
 
 typedef void* followee_iterator;
+typedef void* twiiiiit_iterator;
 
 /**
  * Initialise la base de données
@@ -37,4 +45,30 @@ followee_iterator database_list_followee(char* follower);
  * sont libérées. Il n'est alors plus autorisé de rappeler cette fonction sur le même itérateur.
  * Sinon, elle renvoie `true`, écrit le nom de l'abonnement dans `out` et avance son curseur interne.
  */
-bool database_list_followee_next(followee_iterator cursor, user_name* out);
+bool database_list_followee_next(followee_iterator cursor, char* out);
+
+/**
+ * Publie un twiiiiit dont `author` est l'auteur·ice
+ *
+ * Passer à cette fonction un auteur dont le nom n'est pas associé à un utilisateur est considéré comme une erreur, d'où
+ * la nécessité de bien appeler database_update_user() lors de la connexion de n'importe qui.
+ */
+void database_save_twiiiiit(char* author, char* message);
+
+/**
+ * Renvoie un itérateur sur les twiiiiits manqués par un utilisateur donné, du plus ancien au plus récent
+ *
+ * Cette fonction devrait être appelée à la reconnexion, avant database_update_user(), sans quoi la dernière date de
+ * déconnexion serait écrasée trop tôt. Il n'est pas illégal d'appeler cette fonction avec un `follower` qui n'est pas
+ * encore enregistré dans la BDD, et cela est même voué à arriver à chaque première connexion.
+ *
+ * @see database_list_missed_twiiiiits_next()
+ */
+twiiiiit_iterator database_list_missed_twiiiiits(char* follower);
+
+/**
+ * Avance dans un itérateur de twiiiiits et renvoie chaque twiiiiit par le second argument
+ *
+ * Les précautions sont les mêmes que database_list_followee_next()
+ */
+bool database_twiiiiits_next(twiiiiit_iterator iterator, database_twiiiiit* out);

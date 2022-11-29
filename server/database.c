@@ -84,14 +84,15 @@ void database_initialize() {
 
 void database_update_user(char* user, bool is_online) {
     // language=sqlite
-    char* sql = "insert or replace into users values (?, ?)";
-    long date = is_online ? 0 : time(NULL);
+    char* sql = is_online
+        ? "insert or ignore into users values (?, ?)"
+        : "insert or replace into users values (?, ?)";
 
     sqlite3_stmt* stmt;
     int result = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     assert(result == SQLITE_OK);
     sqlite3_bind_text(stmt, 1, user, (int) strnlen(user, MAX_USERNAME_LENGTH), SQLITE_STATIC);
-    sqlite3_bind_int64(stmt, 2, date);
+    sqlite3_bind_int64(stmt, 2, time(NULL));
     assert(sqlite3_step_all(stmt) == SQLITE_DONE);
     sqlite3_finalize(stmt);
 }
@@ -157,14 +158,58 @@ followee_iterator database_list_followee(char* follower) {
     return stmt;
 }
 
-bool database_list_followee_next(followee_iterator cursor, user_name* out) {
+bool database_list_followee_next(followee_iterator cursor, char* out) {
     switch (sqlite3_step(cursor)) {
         case SQLITE_DONE:
             sqlite3_finalize(cursor);
             return false;
         case SQLITE_ROW:
+            assert(sqlite3_column_count(cursor) == 1);
             memset(out, 0, MAX_USERNAME_LENGTH);
-            memcpy(out, sqlite3_column_text(cursor, 0), MAX_USERNAME_LENGTH);
+            strncpy(out, (char*) sqlite3_column_text(cursor, 0), MAX_USERNAME_LENGTH);
+            return true;
+        default:
+            assert(false);
+    }
+}
+
+void database_save_twiiiiit(char* author, char* message) {
+    // language=sqlite
+    char* sql = "insert into twiiiiits values (?, ?, ?)";
+
+    sqlite3_stmt* stmt;
+    int result = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    assert(result == SQLITE_OK);
+    sqlite3_bind_int64(stmt, 1, time(NULL));
+    sqlite3_bind_text(stmt, 2, author, (int) strnlen(author, MAX_USERNAME_LENGTH), SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 3, message, (int) strnlen(message, MESSAGE_MAX_LENGTH), SQLITE_STATIC);
+    assert(sqlite3_step_all(stmt) == SQLITE_DONE);
+    sqlite3_finalize(stmt);
+}
+
+twiiiiit_iterator database_list_missed_twiiiiits(char* follower) {
+    // C'est effrayant, mais ça permet de tout récupérer en une requête
+    // language=sqlite
+    char* sql = "select t.* from twiiiiits t inner join followings f on t.author = f.followee inner join users r on f.follower = r.name where f.follower = ? and t.date >= r.last_online order by t.date";
+
+    sqlite3_stmt* stmt;
+    int result = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+    assert(result == SQLITE_OK);
+    sqlite3_bind_text(stmt, 1, follower, (int) strnlen(follower, MAX_USERNAME_LENGTH), SQLITE_STATIC);
+    return stmt;
+}
+
+bool database_twiiiiits_next(twiiiiit_iterator iterator, database_twiiiiit* out) {
+    switch (sqlite3_step(iterator)) {
+        case SQLITE_DONE:
+            sqlite3_finalize(iterator);
+            return false;
+        case SQLITE_ROW:
+            assert(sqlite3_column_count(iterator) == 3);
+            memset(out, 0, sizeof(database_twiiiiit));
+            out->date = sqlite3_column_int64(iterator, 0);
+            strncpy(out->author, (char*) sqlite3_column_text(iterator, 1), MAX_USERNAME_LENGTH);
+            strncpy(out->message, (char*) sqlite3_column_text(iterator, 2), MESSAGE_MAX_LENGTH);
             return true;
         default:
             assert(false);
