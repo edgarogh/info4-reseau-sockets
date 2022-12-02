@@ -14,14 +14,14 @@
 
 // Le fichier "/server/init_db.sql" est embarqué dans le binaire, linké et accessibles au travers de ces
 // deux symboles (c.f. "/server/CMakeLists.txt" où l'étape de build se passe).
-extern char _binary_init_db_sql_start[];
-extern char _binary_init_db_sql_end;
+extern const char _binary_init_db_sql_start[];
+extern const char _binary_init_db_sql_end;
 
 static sqlite3* db = NULL;
 static char* sqlite_error_message;
 
-static bool is_only_whitespace(char* string, const char* end) {
-    for (char* c = string; c < end; c++) {
+static bool is_only_whitespace(const char* string, const char* end) {
+    for (const char* c = string; c < end; c++) {
         if (!isspace(*c)) return false;
     }
 
@@ -59,7 +59,7 @@ void database_initialize() {
     if (table_count == 0) {
         printf("[INFO] Initializing the database");
         long length = &_binary_init_db_sql_end - &_binary_init_db_sql_start[0];
-        for (char* statement = _binary_init_db_sql_start; !is_only_whitespace(statement, &_binary_init_db_sql_end);) {
+        for (const char* statement = _binary_init_db_sql_start; !is_only_whitespace(statement, &_binary_init_db_sql_end);) {
             sqlite3_stmt* stmt;
             result = sqlite3_prepare_v2(db, statement, (int) length, &stmt, &statement);
             assert(result == SQLITE_OK);
@@ -82,7 +82,7 @@ void database_initialize() {
     assert(result == SQLITE_OK);
 }
 
-void database_update_user(char* user, bool is_online) {
+void database_update_user(const char* user, bool is_online) {
     // language=sqlite
     char* sql = is_online
         ? "insert or ignore into users values (?, ?)"
@@ -104,7 +104,7 @@ void database_update_user(char* user, bool is_online) {
  * @see database_follow()
  * @see database_unfollow()
  */
-static enum subscribe_result database_follow_unfollow(char* follower, char* followee, const char* sql) {
+static enum subscribe_result database_follow_unfollow(const char* follower, const char* followee, const char* sql) {
     int follower_len = (int) strnlen(follower, MAX_USERNAME_LENGTH);
     int followee_len = (int) strnlen(followee, MAX_USERNAME_LENGTH);
 
@@ -133,7 +133,7 @@ static enum subscribe_result database_follow_unfollow(char* follower, char* foll
     return sqlite3_changes(db) != 0 ? SUBSCRIBE_RESULT_OK : SUBSCRIBE_RESULT_UNCHANGED;
 }
 
-enum subscribe_result database_follow(char* follower, char* followee) {
+enum subscribe_result database_follow(const char* follower, const char* followee) {
     // On ne peut pas s'abonner à soi-même.
     // Le message d'erreur n'est pas des plus descriptifs, mais c'est quelque chose que le client aurait pu détecter.
     if (strncmp(follower, followee, MAX_USERNAME_LENGTH) == 0) return SUBSCRIBE_RESULT_NOT_FOUND;
@@ -143,13 +143,13 @@ enum subscribe_result database_follow(char* follower, char* followee) {
     return database_follow_unfollow(follower, followee, sql);
 }
 
-enum subscribe_result database_unfollow(char* follower, char* followee) {
+enum subscribe_result database_unfollow(const char* follower, const char* followee) {
     // language=sqlite
     char* sql = "delete from followings where follower = ? and followee = ?";
     return database_follow_unfollow(follower, followee, sql);
 }
 
-followee_iterator database_list_followee(char* follower) {
+followee_iterator database_list_followee(const char* follower) {
     sqlite3_stmt* stmt;
     // language=sqlite
     int result = sqlite3_prepare_v2(db, "select followee from followings where follower = ?", -1, &stmt, NULL);
@@ -158,7 +158,7 @@ followee_iterator database_list_followee(char* follower) {
     return stmt;
 }
 
-bool database_list_followee_next(followee_iterator cursor, char* out) {
+bool database_list_followee_next(followee_iterator restrict cursor, char* restrict out) {
     switch (sqlite3_step(cursor)) {
         case SQLITE_DONE:
             sqlite3_finalize(cursor);
@@ -173,7 +173,7 @@ bool database_list_followee_next(followee_iterator cursor, char* out) {
     }
 }
 
-void database_save_twiiiiit(char* author, char* message) {
+void database_save_twiiiiit(const char* author, const char* message) {
     // language=sqlite
     char* sql = "insert into twiiiiits values (?, ?, ?)";
 
@@ -187,7 +187,7 @@ void database_save_twiiiiit(char* author, char* message) {
     sqlite3_finalize(stmt);
 }
 
-twiiiiit_iterator database_list_missed_twiiiiits(char* follower) {
+twiiiiit_iterator database_list_missed_twiiiiits(const char* follower) {
     // C'est effrayant, mais ça permet de tout récupérer en une requête
     // language=sqlite
     char* sql = "select t.* from twiiiiits t inner join followings f on t.author = f.followee inner join users r on f.follower = r.name where f.follower = ? and t.date >= r.last_online order by t.date";
@@ -199,7 +199,7 @@ twiiiiit_iterator database_list_missed_twiiiiits(char* follower) {
     return stmt;
 }
 
-bool database_twiiiiits_next(twiiiiit_iterator iterator, database_twiiiiit* out) {
+bool database_twiiiiits_next(twiiiiit_iterator restrict iterator, database_twiiiiit* restrict out) {
     switch (sqlite3_step(iterator)) {
         case SQLITE_DONE:
             sqlite3_finalize(iterator);

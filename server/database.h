@@ -27,16 +27,16 @@ void database_initialize();
  * Cette fonction DOIT être appelée à la déconnexion de chaque utilisateur, afin d'enregistrer la date de déconnexion et
  * de permettre de rattraper les twiiiiits manqués ultérieurement.
  */
-void database_update_user(char* user, bool is_online);
+void database_update_user(const char* user, bool is_online);
 
-enum subscribe_result database_follow(char* follower, char* followee);
-enum subscribe_result database_unfollow(char* follower, char* followee);
+enum subscribe_result database_follow(const char* follower, const char* followee);
+enum subscribe_result database_unfollow(const char* follower, const char* followee);
 
 /**
  * Renvoie la liste d'abonnements d'un utilisateur donné, sous forme d'itérateur. Ainsi, l'énumération se fait
  * progressivement, au besoin, sans allouer de mémoire.
  */
-followee_iterator database_list_followee(char* follower);
+followee_iterator database_list_followee(const char* follower);
 
 /**
  * Avance dans l'itérateur d'énumération des abonnements
@@ -45,7 +45,7 @@ followee_iterator database_list_followee(char* follower);
  * sont libérées. Il n'est alors plus autorisé de rappeler cette fonction sur le même itérateur.
  * Sinon, elle renvoie `true`, écrit le nom de l'abonnement dans `out` et avance son curseur interne.
  */
-bool database_list_followee_next(followee_iterator cursor, char* out);
+bool database_list_followee_next(followee_iterator restrict cursor, char* restrict out);
 
 /**
  * Publie un twiiiiit dont `author` est l'auteur·ice
@@ -53,7 +53,7 @@ bool database_list_followee_next(followee_iterator cursor, char* out);
  * Passer à cette fonction un auteur dont le nom n'est pas associé à un utilisateur est considéré comme une erreur, d'où
  * la nécessité de bien appeler database_update_user() lors de la connexion de n'importe qui.
  */
-void database_save_twiiiiit(char* author, char* message);
+void database_save_twiiiiit(const char* author, const char* message);
 
 /**
  * Renvoie un itérateur sur les twiiiiits manqués par un utilisateur donné, du plus ancien au plus récent
@@ -64,11 +64,11 @@ void database_save_twiiiiit(char* author, char* message);
  *
  * @see database_list_missed_twiiiiits_next()
  */
-twiiiiit_iterator database_list_missed_twiiiiits(char* follower);
+twiiiiit_iterator database_list_missed_twiiiiits(const char* follower);
 
 /**
  * Avance dans un itérateur de twiiiiits et renvoie chaque twiiiiit par le second argument
  *
  * Les précautions sont les mêmes que database_list_followee_next()
  */
-bool database_twiiiiits_next(twiiiiit_iterator iterator, database_twiiiiit* out);
+bool database_twiiiiits_next(twiiiiit_iterator restrict iterator, database_twiiiiit* restrict out);
