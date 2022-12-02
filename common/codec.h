@@ -1,7 +1,11 @@
+#include <stdbool.h>
+
 #include "constants.h"
 
+#define IO_BUFFER_SIZE 48
+
 typedef struct {
-    long date;
+    int64_t date;
     user_name author;
     char message[MESSAGE_MAX_LENGTH];
 } received_message;
@@ -55,3 +59,21 @@ typedef struct {
         char publish[MESSAGE_MAX_LENGTH];
     };
 } message_c2s;
+
+/**
+ * Encode un message serveur-vers-client dans `frame`
+ *
+ * `frame` **doit** faire au minimum IO_BUFFER_SIZE octets.
+ */
+void encode_s2c(const message_s2c* restrict msg, char* restrict frame);
+
+bool decode_s2c(const char* restrict frame, message_s2c* restrict msg);
+
+/**
+ * Encode un message client-vers-serveur dans `frame`
+ *
+ * `frame` **doit** faire au minimum IO_BUFFER_SIZE octets.
+ */
+void encode_c2s(const message_c2s* msg, char* frame);
+
+bool decode_c2s(const char* restrict frame, message_c2s* restrict msg);
