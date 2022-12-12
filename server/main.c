@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -99,7 +100,6 @@ void handle_event(server_state* server, struct epoll_event* event) {
         printf("[INFO] %d is joining\n", sock);
         user_list_node_insert(&server->users, sock);
     } else if (event->events & EPOLLIN) { // Probablement un nouveau message sur un socket connecté à un client
-        // TODO remove the following lines, this is temporary
         int fd = event->data.fd;
         user_list_node* user = user_list_node_find(server->users, fd);
         if (user == NULL) {
@@ -131,11 +131,106 @@ void handle_event(server_state* server, struct epoll_event* event) {
 }
 
 void process_message(server_state* server, user_list_node* user, const message_c2s* message) {
-    // TODO
-    printf("[DEBUG] Message received from %d\n", user->fd);
+    int fd = user->fd;
+    char* username = user->user_name;
+
+    if (message->tag == MESSAGE_C2S_JOIN_AS) {
+        if (username[0] != 0) {
+            printf("[WARNING] User %.*s is trying to rename themselves, which is forbidden\n", MAX_USERNAME_LENGTH, username);
+            send_message_immediately(fd, (message_s2c) {
+                    .tag = MESSAGE_S2C_KICK,
+                    .kick = KICK_REASON_PROTOCOL_ERROR,
+            });
+            kick_user(server, fd);
+            return;
+        } else {
+            if (message->join_as[0] == 0) {
+                // Name can't be empty
+                send_message_immediately(fd, (message_s2c) {
+                    .tag = MESSAGE_S2C_LOGIN_STATUS,
+                    .login_status = LOGIN_STATUS_ILLEGAL_NAME,
+                });
+                return;
+            } else if (user_list_node_find_by_name(server->users, message->join_as)) {
+                // Name can't be already online
+                send_message_immediately(fd, (message_s2c) {
+                    .tag = MESSAGE_S2C_LOGIN_STATUS,
+                    .login_status = LOGIN_STATUS_ALREADY_USED,
+                });
+                return;
+            } else {
+                // Attach the username to the current user node
+                strncpy(username, message->join_as, MAX_USERNAME_LENGTH);
+                database_update_user(username, true);
+                send_message_immediately(fd, (message_s2c) {
+                    .tag = MESSAGE_S2C_LOGIN_STATUS,
+                    .login_status = LOGIN_STATUS_OK,
+                });
+            }
+        }
+    }
+
+    switch (message->tag) {
+        case MESSAGE_C2S_JOIN_AS:
+            // TODO catch up with missed twiiiiits
+            return;
+        case MESSAGE_C2S_SUBSCRIBE_TO:;
+            enum subscribe_result result = database_follow(username, message->subscribe_to);
+            send_message_immediately(fd, (message_s2c) {
+                .tag = MESSAGE_S2C_SUBSCRIBE_RESULT,
+                .subscribe_result = result,
+            });
+            return;
+        case MESSAGE_C2S_UNSUBSCRIBE_TO:;
+            enum subscribe_result u_result = database_unfollow(username, message->unsubscribe_to);
+            send_message_immediately(fd, (message_s2c) {
+                .tag = MESSAGE_S2C_SUBSCRIBE_RESULT,
+                .subscribe_result = u_result,
+            });
+            return;
+        case MESSAGE_C2S_LIST_SUBSCRIPTIONS:;
+            followee_iterator it = database_list_followee(username);
+            message_s2c subscription_entry = {
+                .tag = MESSAGE_S2C_SUBSCRIPTION_ENTRY,
+            };
+
+            while (database_list_followee_next(it, subscription_entry.subscription_entry)) {
+                send_message_immediately(fd, subscription_entry);
+            }
+
+            // We finish the list with a blank entry
+            memset(subscription_entry.subscription_entry, 0, MAX_USERNAME_LENGTH);
+            send_message_immediately(fd, subscription_entry);
+            return;
+        case MESSAGE_C2S_PUBLISH:;
+            database_save_twiiiiit(username, message->publish);
+            // TODO broadcast twiiiiit to connected followers
+            return;
+    }
+}
+
+/**
+ * In the future, we may want to send data using epoll too
+ */
+bool send_message_immediately(int fd, message_s2c message) {
+    char frame[IO_BUFFER_SIZE];
+    memset(frame, 0, IO_BUFFER_SIZE);
+    encode_s2c(&message, frame);
+
+    ssize_t remaining = IO_BUFFER_SIZE;
+    while (remaining > 0) {
+        ssize_t written = write(fd, frame + (IO_BUFFER_SIZE - remaining), remaining);
+        if (written < 0) {
+            return false;
+        }
+        remaining -= written;
+    }
+
+    return true;
 }
 
 void kick_user(server_state* server, int user_fd) {
+    // TODO database_update_player
     printf("[INFO] %d is leaving\n", user_fd);
     user_list_node_delete(&server->users, user_fd);
     epoll_ctl(server->epoll, EPOLL_CTL_DEL, user_fd, NULL);

@@ -23,6 +23,16 @@ user_list_node* user_list_node_find(user_list_node* list, int fd) {
     return NULL;
 }
 
+user_list_node* user_list_node_find_by_name(user_list_node* list, const user_name name) {
+    for (user_list_node* node = list; node != NULL; node = node->next) {
+        if (strncmp(node->user_name, name, MAX_USERNAME_LENGTH) == 0) {
+            return node;
+        }
+    }
+
+    return NULL;
+}
+
 bool user_list_node_delete(user_list_node** list, int fd) {
     for (user_list_node** node = list; *node != NULL; node = &(*node)->next) {
         if ((*node)->fd == fd) {

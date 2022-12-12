@@ -27,6 +27,8 @@ user_list_node* user_list_node_insert(user_list_node** list, int fd);
 
 user_list_node* user_list_node_find(user_list_node* list, int fd);
 
+user_list_node* user_list_node_find_by_name(user_list_node* list, const user_name name);
+
 /**
  * Tries to remove a node from its file descriptor in the list. Returns true if the removal is successful.
  */
