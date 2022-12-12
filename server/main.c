@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <sys/epoll.h>
 #include <sys/socket.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 #include "constants.h"
 #include "database.h"
@@ -61,6 +63,35 @@ int main(int argc, char** argv) {
     }
 }
 
+void handle_err(int code, const char * msg) {
+    if (code < 0) {
+        printf("[ERROR] %s\n", msg);
+        exit(1);
+    }
+}
+
 void handle_event(server_state* server, struct epoll_event* event) {
-    // TODO
+    if (event->data.fd == server->server_socket) { // Nouvelle connexion
+        if(event->events & EPOLLHUP || event->events & EPOLLERR) {
+            close(server->server_socket);
+            exit(1);
+        }
+
+        int fd = event->data.fd;
+        struct sockaddr address;
+        unsigned int addrlen = sizeof(address);
+        int sock = accept(fd, &address, &addrlen);
+        handle_err(sock, "Accept failed");
+
+        // rend le nouveau socket non bloquant
+        // et l'ajoute au contexte epoll
+        int flags = fcntl(fd, F_GETFL, NULL);
+        handle_err(flags, "fnctl GET failed");
+        handle_err(fcntl(fd, F_SETFL, flags | O_NONBLOCK), "fnctl SET failed");
+
+        struct epoll_event socket_epolling = { .events = EPOLLIN };
+        epoll_ctl(server->epoll, EPOLL_CTL_ADD, sock, &socket_epolling);
+    } else { // Nouveau message sur un socket connecté à un client
+
+    }
 }
