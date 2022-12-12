@@ -5,6 +5,7 @@ add_executable(${EXE_NAME}
     database.c
     database.h
     server.h
+    user_list.c
 )
 target_link_libraries(${EXE_NAME} common)
 

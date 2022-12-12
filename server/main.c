@@ -51,6 +51,7 @@ int main(int argc, char** argv) {
     server_state server = {
         .server_socket = server_socket,
         .epoll = epoll,
+        .users = NULL,
     };
 
     struct epoll_event events[EPOLL_MAX_EVENTS];
@@ -94,18 +95,49 @@ void handle_event(server_state* server, struct epoll_event* event) {
             epoll_ctl(server->epoll, EPOLL_CTL_ADD, sock, &socket_epollin),
             "Couldn't add incoming connection to the epoll pool: errno %d\n", errno
         );
+
+        printf("[INFO] %d is joining\n", sock);
+        user_list_node_insert(&server->users, sock);
     } else if (event->events & EPOLLIN) { // Probablement un nouveau message sur un socket connecté à un client
         // TODO remove the following lines, this is temporary
         int fd = event->data.fd;
-        char buffer[IO_BUFFER_SIZE];
-        ssize_t bytes_read = read(fd, buffer, IO_BUFFER_SIZE);
-        if (bytes_read == 0) {
-            epoll_ctl(server->epoll, EPOLL_CTL_DEL, fd, NULL);
-            close(fd);
+        user_list_node* user = user_list_node_find(server->users, fd);
+        if (user == NULL) {
+            printf("[ERROR] Can't find file descriptor %d in the connected player list. Kicking them.\n", fd);
+            kick_user(server, fd);
             return;
         }
-        printf("[DEBUG] %ld bytes were read\n", bytes_read);
+
+        size_t already_read = user->frame_receive_buffer_len;
+        ssize_t bytes_read = read(fd, user->frame_receive_buffer + already_read, IO_BUFFER_SIZE - already_read);
+        if (bytes_read > 0) {
+            user->frame_receive_buffer_len += bytes_read;
+            if (user->frame_receive_buffer_len == IO_BUFFER_SIZE) {
+                user->frame_receive_buffer_len = 0;
+                message_c2s message;
+                if (decode_c2s(user->frame_receive_buffer, &message)) {
+                    process_message(server, user, &message);
+                } else {
+                    printf("[WARNING] Invalid message sent by client %d\n", fd);
+                }
+            }
+        } else {
+            // EOF? => disconnect socket
+            kick_user(server, fd);
+        }
     } else {
         printf("[ERROR] Unhandled epoll event %d, ignoring\n", event->events);
     }
+}
+
+void process_message(server_state* server, user_list_node* user, const message_c2s* message) {
+    // TODO
+    printf("[DEBUG] Message received from %d\n", user->fd);
+}
+
+void kick_user(server_state* server, int user_fd) {
+    printf("[INFO] %d is leaving\n", user_fd);
+    user_list_node_delete(&server->users, user_fd);
+    epoll_ctl(server->epoll, EPOLL_CTL_DEL, user_fd, NULL);
+    close(user_fd);
 }
