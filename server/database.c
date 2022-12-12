@@ -67,7 +67,6 @@ void database_initialize() {
             sqlite3_finalize(stmt);
         }
         printf(". DONE\n");
-        assert(sqlite3_close(db) == SQLITE_OK);
     } else if (table_count == 3) {
         printf("[INFO] Found existing database in " DATABASE_PATH "\n");
     } else {
