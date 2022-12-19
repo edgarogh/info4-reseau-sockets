@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <time.h>
 
 #include "codec.h"
 #include "constants.h"
@@ -53,7 +54,7 @@ bool database_list_followee_next(followee_iterator restrict cursor, char* restri
  * Passer à cette fonction un auteur dont le nom n'est pas associé à un utilisateur est considéré comme une erreur, d'où
  * la nécessité de bien appeler database_update_user() lors de la connexion de n'importe qui.
  */
-void database_save_twiiiiit(const char* author, const char* message);
+time_t database_save_twiiiiit(const char* author, const char* message);
 
 /**
  * Renvoie un itérateur sur les twiiiiits manqués par un utilisateur donné, du plus ancien au plus récent

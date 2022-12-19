@@ -171,8 +171,18 @@ void process_message(server_state* server, user_list_node* user, const message_c
     }
 
     switch (message->tag) {
-        case MESSAGE_C2S_JOIN_AS:
-            // TODO catch up with missed twiiiiits
+        case MESSAGE_C2S_JOIN_AS:;
+            twiiiiit_iterator missed_it = database_list_missed_twiiiiits(username);
+            database_twiiiiit twiiiiit;
+            while (database_twiiiiits_next(missed_it, &twiiiiit)) {
+                message_s2c twiiiiit_msg = (message_s2c) {
+                    .tag = MESSAGE_S2C_RECEIVED_MESSAGE,
+                    .received_message.date = twiiiiit.date,
+                };
+                strncpy(twiiiiit_msg.received_message.author, twiiiiit.author, MAX_USERNAME_LENGTH);
+                strncpy(twiiiiit_msg.received_message.message, twiiiiit.message, MESSAGE_MAX_LENGTH);
+                send_message_immediately(fd, twiiiiit_msg);
+            }
             return;
         case MESSAGE_C2S_SUBSCRIBE_TO:;
             enum subscribe_result result = database_follow(username, message->subscribe_to);
@@ -203,8 +213,17 @@ void process_message(server_state* server, user_list_node* user, const message_c
             send_message_immediately(fd, subscription_entry);
             return;
         case MESSAGE_C2S_PUBLISH:;
-            database_save_twiiiiit(username, message->publish);
-            // TODO broadcast twiiiiit to connected followers
+            time_t twiiiiit_date = database_save_twiiiiit(username, message->publish);
+            message_s2c twiiiiit_msg = (message_s2c) {
+                .tag = MESSAGE_S2C_RECEIVED_MESSAGE,
+                .received_message.date = twiiiiit_date,
+            };
+            strncpy(twiiiiit_msg.received_message.author, username, MAX_USERNAME_LENGTH);
+            strncpy(twiiiiit_msg.received_message.message, message->publish, MESSAGE_MAX_LENGTH);
+            // Broadcast twiiiiit
+            for (user_list_node* u = server->users; u; u = u->next) {
+                send_message_immediately(u->fd, twiiiiit_msg);
+            }
             return;
     }
 }

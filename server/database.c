@@ -172,18 +172,20 @@ bool database_list_followee_next(followee_iterator restrict cursor, char* restri
     }
 }
 
-void database_save_twiiiiit(const char* author, const char* message) {
+time_t database_save_twiiiiit(const char* author, const char* message) {
     // language=sqlite
     char* sql = "insert into twiiiiits values (?, ?, ?)";
 
     sqlite3_stmt* stmt;
     int result = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     assert(result == SQLITE_OK);
-    sqlite3_bind_int64(stmt, 1, time(NULL));
+    time_t now = time(NULL);
+    sqlite3_bind_int64(stmt, 1, now);
     sqlite3_bind_text(stmt, 2, author, (int) strnlen(author, MAX_USERNAME_LENGTH), SQLITE_STATIC);
     sqlite3_bind_text(stmt, 3, message, (int) strnlen(message, MESSAGE_MAX_LENGTH), SQLITE_STATIC);
     assert(sqlite3_step_all(stmt) == SQLITE_DONE);
     sqlite3_finalize(stmt);
+    return now;
 }
 
 twiiiiit_iterator database_list_missed_twiiiiits(const char* follower) {
