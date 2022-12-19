@@ -1,10 +1,12 @@
 #include <assert.h>
 #include <errno.h>
 #include <netinet/in.h>
+#include <signal.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/epoll.h>
+#include <sys/signalfd.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -48,6 +50,15 @@ int main(int argc, char** argv) {
     struct epoll_event server_socket_epollin = { .events = EPOLLIN, .data.fd = server_socket };
     epoll_ctl(epoll, EPOLL_CTL_ADD, server_socket, &server_socket_epollin);
 
+    // Gestion de SIGINT via un descripteur de fichier
+    sigset_t mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+    int signal_fd = signalfd(-1, &mask, 0);
+    struct epoll_event signal_epollin = { .events = EPOLLIN, .data.fd = signal_fd };
+    epoll_ctl(epoll, EPOLL_CTL_ADD, signal_fd, &signal_epollin);
+
     server_state server = {
         .server_socket = server_socket,
         .epoll = epoll,
@@ -64,9 +75,19 @@ int main(int argc, char** argv) {
 
         for (int i = 0; i < remaining_events; i++) {
             struct epoll_event* event = &events[i];
+            if (event->data.fd == signal_fd) goto shutdown;
             handle_event(&server, event);
         }
     }
+
+    shutdown:
+    printf("[INFO] SIGINT received, shutting down\n");
+    for (user_list_node* user = server.users; user != NULL; user = server.users) {
+        kick_user(&server, user->fd, user);
+    }
+    close(signal_fd);
+    close(server_socket);
+    close(epoll);
 }
 
 #define SUCCESS_OR_RETURN(value, args...) if (value < 0) { printf("[WARNING] " args); return; }
@@ -104,7 +125,7 @@ void handle_event(server_state* server, struct epoll_event* event) {
         user_list_node* user = user_list_node_find(server->users, fd);
         if (user == NULL) {
             printf("[ERROR] Can't find file descriptor %d in the connected player list. Kicking them.\n", fd);
-            kick_user(server, fd);
+            kick_user(server, fd, NULL);
             return;
         }
 
@@ -123,7 +144,7 @@ void handle_event(server_state* server, struct epoll_event* event) {
             }
         } else {
             // EOF? => disconnect socket
-            kick_user(server, fd);
+            kick_user(server, fd, user);
         }
     } else {
         printf("[ERROR] Unhandled epoll event %d, ignoring\n", event->events);
@@ -135,8 +156,9 @@ void process_message(server_state* server, user_list_node* user, const message_c
     printf("[DEBUG] Message received from %d\n", user->fd);
 }
 
-void kick_user(server_state* server, int user_fd) {
+void kick_user(server_state* server, int user_fd, user_list_node* user) {
     printf("[INFO] %d is leaving\n", user_fd);
+    if (user != NULL) database_update_user(user->user_name, false);
     user_list_node_delete(&server->users, user_fd);
     epoll_ctl(server->epoll, EPOLL_CTL_DEL, user_fd, NULL);
     close(user_fd);
