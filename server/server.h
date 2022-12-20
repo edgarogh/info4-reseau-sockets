@@ -12,6 +12,6 @@ typedef struct {
 void handle_event(server_state* server, struct epoll_event* event);
 void process_message(server_state* server, user_list_node* user, const message_c2s* message);
 bool send_message_immediately(int fd, message_s2c message);
-void kick_user(server_state* server, int user_fd);
+void kick_user(server_state* server, int user_fd, user_list_node* user);
 
 #endif
