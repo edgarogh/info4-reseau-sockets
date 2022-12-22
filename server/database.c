@@ -11,8 +11,6 @@
 #include "constants.h"
 #include "database.h"
 
-#define DATABASE_PATH "twiiiiiter.sqlite"
-
 // Le fichier "/server/init_db.sql" est embarqué dans le binaire, linké et accessibles au travers de ces
 // deux symboles (c.f. "/server/CMakeLists.txt" où l'étape de build se passe).
 extern const char _binary_init_db_sql_start[];
@@ -47,8 +45,8 @@ static int database_initialize_callback(void* table_count, int column_count, cha
     return 0;
 }
 
-void database_initialize() {
-    assert(sqlite3_open_v2(DATABASE_PATH, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL) == SQLITE_OK);
+void database_initialize(const char* database_file) {
+    assert(sqlite3_open_v2(database_file, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL) == SQLITE_OK);
     printf("[INFO] Using SQLite %s\n", sqlite3_libversion());
 
     size_t table_count = -1;
@@ -75,7 +73,7 @@ void database_initialize() {
         }
         printf(". DONE\n");
     } else if (table_count == 3) {
-        printf("[INFO] Found existing database in " DATABASE_PATH "\n");
+        printf("[INFO] Found existing database in %s\n", database_file);
     } else {
         // Nombre de tables non conventionnel trouvé
         assert(false);
