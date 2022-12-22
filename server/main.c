@@ -40,8 +40,12 @@ int main(int argc, char** argv) {
         .sin_zero = { 0 },
     };
 
-    assert(bind(server_socket, (struct sockaddr*) &address, sizeof(address)) >= 0);
+    socklen_t address_len = sizeof address;
+    assert(bind(server_socket, (struct sockaddr*) &address, address_len) >= 0);
     assert(listen(server_socket, 16) == 0);
+    assert(getsockname(server_socket, (struct sockaddr*) &address, &address_len) == 0);
+    printf("[INFO] Listening on *:%d\n", ntohs(address.sin_port));
+    fflush(stdout); // Important so the testing utility can connect to the correct server
 
     database_initialize(getenv("TWIIIIITER_DATABASE_FILE") ?: "twiiiiiter.sqlite");
 
@@ -89,6 +93,8 @@ int main(int argc, char** argv) {
     close(signal_fd);
     close(server_socket);
     close(epoll);
+
+    return 0;
 }
 
 #define SUCCESS_OR_RETURN(value, args...) if (value < 0) { printf("[WARNING] " args); return; }
