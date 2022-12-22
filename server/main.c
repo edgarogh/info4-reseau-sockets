@@ -182,7 +182,6 @@ void process_message(server_state* server, user_list_node* user, const message_c
             } else {
                 // Attach the username to the current user node
                 strncpy(username, message->join_as, MAX_USERNAME_LENGTH);
-                database_update_user(username, true);
                 send_message_immediately(fd, (message_s2c) {
                     .tag = MESSAGE_S2C_LOGIN_STATUS,
                     .login_status = LOGIN_STATUS_OK,
@@ -204,6 +203,7 @@ void process_message(server_state* server, user_list_node* user, const message_c
                 strncpy(twiiiiit_msg.received_message.message, twiiiiit.message, MESSAGE_MAX_LENGTH);
                 send_message_immediately(fd, twiiiiit_msg);
             }
+            database_update_user(username, true);
             return;
         case MESSAGE_C2S_SUBSCRIBE_TO:;
             enum subscribe_result result = database_follow(username, message->subscribe_to);
@@ -220,12 +220,12 @@ void process_message(server_state* server, user_list_node* user, const message_c
             });
             return;
         case MESSAGE_C2S_LIST_SUBSCRIPTIONS:;
-            followee_iterator it = database_list_followee(username);
+            user_iterator it = database_list_followee(username);
             message_s2c subscription_entry = {
                 .tag = MESSAGE_S2C_SUBSCRIPTION_ENTRY,
             };
 
-            while (database_list_followee_next(it, subscription_entry.subscription_entry)) {
+            while (database_users_next(it, subscription_entry.subscription_entry)) {
                 send_message_immediately(fd, subscription_entry);
             }
 
@@ -241,9 +241,16 @@ void process_message(server_state* server, user_list_node* user, const message_c
             };
             strncpy(twiiiiit_msg.received_message.author, username, MAX_USERNAME_LENGTH);
             strncpy(twiiiiit_msg.received_message.message, message->publish, MESSAGE_MAX_LENGTH);
-            // Broadcast twiiiiit
-            for (user_list_node* u = server->users; u; u = u->next) {
-                send_message_immediately(u->fd, twiiiiit_msg);
+            // Send twiiiiit to self
+            send_message_immediately(fd, twiiiiit_msg);
+            // ... and broadcast twiiiiit
+            user_iterator followers_it = database_list_followers(username);
+            char follower_name[MAX_USERNAME_LENGTH];
+            while (database_users_next(followers_it, follower_name)) {
+                user_list_node* follower_node = user_list_node_find_by_name(server->users, follower_name);
+                if (follower_node != NULL) {
+                    send_message_immediately(follower_node->fd, twiiiiit_msg);
+                }
             }
             return;
     }
