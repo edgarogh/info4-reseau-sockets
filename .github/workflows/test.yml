@@ -19,4 +19,5 @@ jobs:
       with:
         toolchain: stable
     - name: Run tests
+      working-directory: tests
       run: cargo test
