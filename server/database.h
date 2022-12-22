@@ -18,7 +18,7 @@ typedef void* twiiiiit_iterator;
  *
  * Doit être appelé avant d'utiliser les fonctions ci-dessous
  */
-void database_initialize();
+void database_initialize(const char* database_file);
 
 /**
  * Enregistre l'état d'un utilisateur dans la base de données (et le créé si besoin)

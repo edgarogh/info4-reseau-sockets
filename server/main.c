@@ -43,7 +43,7 @@ int main(int argc, char** argv) {
     assert(bind(server_socket, (struct sockaddr*) &address, sizeof(address)) >= 0);
     assert(listen(server_socket, 16) == 0);
 
-    database_initialize();
+    database_initialize(getenv("TWIIIIITER_DATABASE_FILE") ?: "twiiiiiter.sqlite");
 
     int epoll = epoll_create1(0);
     assert (epoll > 0);
