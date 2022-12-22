@@ -11,7 +11,7 @@ jobs:
     name: Build client
     runs-on: ubuntu-latest
     steps:
-    - run: apt install libncurses6
+    - run: sudo apt-get install libncurses6
     - uses: actions/checkout@v3
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
@@ -21,7 +21,7 @@ jobs:
     name: Build server
     runs-on: ubuntu-latest
     steps:
-    - run: apt install libsqlite0-dev
+    - run: sudo apt-get install libsqlite0-dev
     - uses: actions/checkout@v3
     - name: Configure CMake
       run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
