@@ -18,6 +18,8 @@ jobs:
     - uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
+    - run: ls
+    - run: ls ..
     - name: Run tests
       working-directory: tests
-      run: ls && ls .. & cargo test
+      run: cargo test
