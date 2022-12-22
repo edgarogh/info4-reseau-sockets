@@ -20,4 +20,4 @@ jobs:
         toolchain: stable
     - name: Run tests
       working-directory: tests
-      run: cargo test
+      run: ls && ls .. & cargo test
