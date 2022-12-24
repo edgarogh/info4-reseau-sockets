@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
         .sin_addr = {
             .s_addr = *((in_addr_t*) ip->h_addr),
         },
-        .sin_port = port,
+        .sin_port = htons(port),
         .sin_zero = { 0 },
     };
 
