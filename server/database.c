@@ -2,6 +2,7 @@
 #include <ctype.h>
 #include <sqlite3.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,8 +10,6 @@
 
 #include "constants.h"
 #include "database.h"
-
-#define DATABASE_PATH "twiiiiiter.sqlite"
 
 // Le fichier "/server/init_db.sql" est embarqué dans le binaire, linké et accessibles au travers de ces
 // deux symboles (c.f. "/server/CMakeLists.txt" où l'étape de build se passe).
@@ -34,14 +33,20 @@ int sqlite3_step_all(sqlite3_stmt* stmt) {
     return step;
 }
 
+int64_t ts_now() {
+    struct timespec tv;
+    timespec_get(&tv,TIME_UTC);
+    return tv.tv_sec * (int64_t) 1000000 + tv.tv_nsec / 1000;
+}
+
 static int database_initialize_callback(void* table_count, int column_count, char** row_values, char** columns) {
     assert(column_count == 1);
     *((size_t*) table_count) = strtoul(row_values[0], NULL, 10);
     return 0;
 }
 
-void database_initialize() {
-    assert(sqlite3_open_v2(DATABASE_PATH, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL) == SQLITE_OK);
+void database_initialize(const char* database_file) {
+    assert(sqlite3_open_v2(database_file, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL) == SQLITE_OK);
     printf("[INFO] Using SQLite %s\n", sqlite3_libversion());
 
     size_t table_count = -1;
@@ -67,9 +72,8 @@ void database_initialize() {
             sqlite3_finalize(stmt);
         }
         printf(". DONE\n");
-        assert(sqlite3_close(db) == SQLITE_OK);
     } else if (table_count == 3) {
-        printf("[INFO] Found existing database in " DATABASE_PATH "\n");
+        printf("[INFO] Found existing database in %s\n", database_file);
     } else {
         // Nombre de tables non conventionnel trouvé
         assert(false);
@@ -84,15 +88,13 @@ void database_initialize() {
 
 void database_update_user(const char* user, bool is_online) {
     // language=sqlite
-    char* sql = is_online
-        ? "insert or ignore into users values (?, ?)"
-        : "insert or replace into users values (?, ?)";
+    char* sql = "insert or ignore into users values (?1, ?2) on conflict (name) do update set last_online = ?2";
 
     sqlite3_stmt* stmt;
     int result = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     assert(result == SQLITE_OK);
     sqlite3_bind_text(stmt, 1, user, (int) strnlen(user, MAX_USERNAME_LENGTH), SQLITE_STATIC);
-    sqlite3_bind_int64(stmt, 2, time(NULL));
+    sqlite3_bind_int64(stmt, 2, ts_now());
     assert(sqlite3_step_all(stmt) == SQLITE_DONE);
     sqlite3_finalize(stmt);
 }
@@ -149,7 +151,7 @@ enum subscribe_result database_unfollow(const char* follower, const char* follow
     return database_follow_unfollow(follower, followee, sql);
 }
 
-followee_iterator database_list_followee(const char* follower) {
+user_iterator database_list_followee(const char* follower) {
     sqlite3_stmt* stmt;
     // language=sqlite
     int result = sqlite3_prepare_v2(db, "select followee from followings where follower = ?", -1, &stmt, NULL);
@@ -158,7 +160,16 @@ followee_iterator database_list_followee(const char* follower) {
     return stmt;
 }
 
-bool database_list_followee_next(followee_iterator restrict cursor, char* restrict out) {
+user_iterator database_list_followers(const char* followee) {
+    sqlite3_stmt* stmt;
+    // language=sqlite
+    int result = sqlite3_prepare_v2(db, "select follower from followings where followee = ?", -1, &stmt, NULL);
+    assert(result == SQLITE_OK);
+    sqlite3_bind_text(stmt, 1, followee, (int) strnlen(followee, MAX_USERNAME_LENGTH), SQLITE_STATIC);
+    return stmt;
+}
+
+bool database_users_next(user_iterator restrict cursor, char* restrict out) {
     switch (sqlite3_step(cursor)) {
         case SQLITE_DONE:
             sqlite3_finalize(cursor);
@@ -173,18 +184,20 @@ bool database_list_followee_next(followee_iterator restrict cursor, char* restri
     }
 }
 
-void database_save_twiiiiit(const char* author, const char* message) {
+time_t database_save_twiiiiit(const char* author, const char* message) {
     // language=sqlite
     char* sql = "insert into twiiiiits values (?, ?, ?)";
 
     sqlite3_stmt* stmt;
     int result = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
     assert(result == SQLITE_OK);
-    sqlite3_bind_int64(stmt, 1, time(NULL));
+    time_t now = ts_now();
+    sqlite3_bind_int64(stmt, 1, now);
     sqlite3_bind_text(stmt, 2, author, (int) strnlen(author, MAX_USERNAME_LENGTH), SQLITE_STATIC);
     sqlite3_bind_text(stmt, 3, message, (int) strnlen(message, MESSAGE_MAX_LENGTH), SQLITE_STATIC);
     assert(sqlite3_step_all(stmt) == SQLITE_DONE);
     sqlite3_finalize(stmt);
+    return now;
 }
 
 twiiiiit_iterator database_list_missed_twiiiiits(const char* follower) {

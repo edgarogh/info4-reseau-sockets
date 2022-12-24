@@ -1,15 +1,16 @@
 #include <stdbool.h>
+#include <time.h>
 
 #include "codec.h"
 #include "constants.h"
 
 typedef struct {
-    long date;
+    int64_t date;
     user_name author;
     char message[MESSAGE_MAX_LENGTH];
 } database_twiiiiit;
 
-typedef void* followee_iterator;
+typedef void* user_iterator;
 typedef void* twiiiiit_iterator;
 
 /**
@@ -17,7 +18,7 @@ typedef void* twiiiiit_iterator;
  *
  * Doit être appelé avant d'utiliser les fonctions ci-dessous
  */
-void database_initialize();
+void database_initialize(const char* database_file);
 
 /**
  * Enregistre l'état d'un utilisateur dans la base de données (et le créé si besoin)
@@ -36,16 +37,23 @@ enum subscribe_result database_unfollow(const char* follower, const char* follow
  * Renvoie la liste d'abonnements d'un utilisateur donné, sous forme d'itérateur. Ainsi, l'énumération se fait
  * progressivement, au besoin, sans allouer de mémoire.
  */
-followee_iterator database_list_followee(const char* follower);
+user_iterator database_list_followee(const char* follower);
 
 /**
- * Avance dans l'itérateur d'énumération des abonnements
+ * Renvoie la liste d'abonnements d'un utilisateur donné, sous forme d'itérateur.
+ *
+ * @see database_list_followee()
+ */
+user_iterator database_list_followers(const char* followee);
+
+/**
+ * Avance dans un itérateur d'énumération d'utilisateurs
  *
  * Si l'itérateur arrive à la fin de l'énumération, la fonction renvoie `false` et les ressources associées au curseur
  * sont libérées. Il n'est alors plus autorisé de rappeler cette fonction sur le même itérateur.
  * Sinon, elle renvoie `true`, écrit le nom de l'abonnement dans `out` et avance son curseur interne.
  */
-bool database_list_followee_next(followee_iterator restrict cursor, char* restrict out);
+bool database_users_next(user_iterator restrict cursor, char* restrict out);
 
 /**
  * Publie un twiiiiit dont `author` est l'auteur·ice
@@ -53,7 +61,7 @@ bool database_list_followee_next(followee_iterator restrict cursor, char* restri
  * Passer à cette fonction un auteur dont le nom n'est pas associé à un utilisateur est considéré comme une erreur, d'où
  * la nécessité de bien appeler database_update_user() lors de la connexion de n'importe qui.
  */
-void database_save_twiiiiit(const char* author, const char* message);
+time_t database_save_twiiiiit(const char* author, const char* message);
 
 /**
  * Renvoie un itérateur sur les twiiiiits manqués par un utilisateur donné, du plus ancien au plus récent
@@ -69,6 +77,6 @@ twiiiiit_iterator database_list_missed_twiiiiits(const char* follower);
 /**
  * Avance dans un itérateur de twiiiiits et renvoie chaque twiiiiit par le second argument
  *
- * Les précautions sont les mêmes que database_list_followee_next()
+ * Les précautions sont les mêmes que database_users_next()
  */
 bool database_twiiiiits_next(twiiiiit_iterator restrict iterator, database_twiiiiit* restrict out);

@@ -1,3 +1,6 @@
+#ifndef _CODEC_H_
+#define _CODEC_H_
+
 #include <stdbool.h>
 
 #include "constants.h"
@@ -77,3 +80,5 @@ bool decode_s2c(const char* restrict frame, message_s2c* restrict msg);
 void encode_c2s(const message_c2s* msg, char* frame);
 
 bool decode_c2s(const char* restrict frame, message_c2s* restrict msg);
+
+#endif
