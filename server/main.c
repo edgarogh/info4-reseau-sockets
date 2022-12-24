@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
     if (argc == 2) {
         port = strtoul(argv[1], NULL, 10);
     } else {
-        port = 7878;
+        port = DEFAULT_PORT;
     }
 
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
