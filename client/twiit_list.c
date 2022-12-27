@@ -2,8 +2,7 @@
 #include <malloc.h>
 #include "twiit_list.h"
 
-twiiiiit_list* twiit_list_new(void)
-{
+twiiiiit_list* twiit_list_new(void) {
     twiiiiit_list *new = malloc(sizeof *new);
     if (new != NULL)
     {
@@ -14,8 +13,7 @@ twiiiiit_list* twiit_list_new(void)
     return new;
 }
 
-twiiiiit_list* twiiiiit_append(twiiiiit_list* list, database_twiiiiit twiiiiit)
-{
+twiiiiit_list* twiiiiit_append(twiiiiit_list* list, received_message twiiiiit) {
     if (list != NULL) /* On vérifie si notre liste a été allouée */
     {
         struct twiiiiit_list_node *new = malloc(sizeof *new); /* Création d'un nouveau node */
@@ -41,8 +39,7 @@ twiiiiit_list* twiiiiit_append(twiiiiit_list* list, database_twiiiiit twiiiiit)
     return list; /* on retourne notre nouvelle liste */
 }
 
-twiiiiit_list* twiiiiit_prepend(twiiiiit_list* list, database_twiiiiit twiiiiit)
-{
+twiiiiit_list* twiiiiit_prepend(twiiiiit_list* list, received_message twiiiiit) {
     if (list != NULL)
     {
         struct twiiiiit_list_node *new = malloc(sizeof *new);
@@ -68,14 +65,13 @@ twiiiiit_list* twiiiiit_prepend(twiiiiit_list* list, database_twiiiiit twiiiiit)
     return list;
 }
 
-void twiiiiit_delete(twiiiiit_list **list)
-{
+void twiiiiit_delete(twiiiiit_list **list) {
     if (*list != NULL)
     {
         struct twiiiiit_list_node *temp = (*list)->head;
         while (temp != NULL)
         {
-            struct node *del = temp;
+            struct twiiiiit_list_node *del = temp;
             temp = temp->next;
             free(del);
         }
