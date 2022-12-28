@@ -27,7 +27,7 @@
           };
         }
       )) // {
-        nixosModules.default = { config, pkgs, libs, ... }:
+        nixosModules.default = { config, pkgs, lib, ... }:
           let cfg = config.services.twiiiiiter-server; in
           with lib;
           {
