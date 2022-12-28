@@ -85,7 +85,8 @@ int main(int argc, char** argv) {
     memset(&client.send_buffer, 0, MESSAGE_MAX_LENGTH);
     encode_c2s(&message, client.send_buffer);
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        client.send_buffer_len += send(client_socket, client.send_buffer+client.send_buffer_len , IO_BUFFER_SIZE, 0);
+        int temp = send(client_socket, client.send_buffer+client.send_buffer_len , IO_BUFFER_SIZE, 0);
+        if (temp > 0) client.send_buffer_len += temp;
     }
     client.send_buffer_len = 0;
     printf("[INFO] Logging in\n[INFO] Help : H\n");
@@ -252,7 +253,8 @@ void publish(client_state client){
     encode_c2s(&message, client.send_buffer);
 
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        client.send_buffer_len += send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
+        int temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
+        if (temp > 0) client.send_buffer_len += temp;
     }
     client.send_buffer_len = 0;
 }
@@ -272,7 +274,8 @@ void subscribe(client_state client, bool unsub){
     encode_c2s(&message, client.send_buffer);
 
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        client.send_buffer_len += send(client.client_socket, client.send_buffer+client.send_buffer_len , IO_BUFFER_SIZE, 0);
+        int temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
+        if (temp > 0) client.send_buffer_len += temp;
     }
     client.send_buffer_len = 0;
 }
@@ -284,7 +287,8 @@ void sub_list (client_state client){
     encode_c2s(&message, client.send_buffer);
 
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        client.send_buffer_len += send(client.client_socket, client.send_buffer+client.send_buffer_len , IO_BUFFER_SIZE, 0);
+        int temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
+        if (temp > 0) client.send_buffer_len += temp;
     }
     client.send_buffer_len = 0;
 }
