@@ -155,3 +155,7 @@ _deps
 /build
 /.vscode
 /twiiiiiter.sqlite
+
+# Nix
+
+result
