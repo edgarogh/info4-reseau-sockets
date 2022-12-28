@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <signal.h>
@@ -15,6 +14,7 @@
 #include "constants.h"
 #include "database.h"
 #include "server.h"
+#include "twiiiiiter_assert.h"
 
 // Maximum d'évènements retournés par epoll lors d'un appel système
 #define EPOLL_MAX_EVENTS 16
@@ -102,6 +102,12 @@ int main(int argc, char** argv) {
 void handle_event(server_state* server, struct epoll_event* event) {
     if (event->data.fd == server->server_socket) { // Nouvelle connexion
         if (event->events & EPOLLHUP || event->events & EPOLLERR) {
+            int error = 0;
+            socklen_t errlen = sizeof(error);
+            if (getsockopt(event->data.fd, SOL_SOCKET, SO_ERROR, (void *)&error, &errlen) == 0) {
+                printf("[ERROR] HUP/ERR: %s\n", strerror(error));
+            }
+
             close(server->server_socket);
             exit(1);
         }
