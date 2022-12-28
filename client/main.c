@@ -9,6 +9,7 @@
 #include <sys/epoll.h>
 #include <errno.h>
 #include <unistd.h>
+#include <wait.h>
 
 #include "codec.h"
 #include "twiit_list.h"
@@ -33,6 +34,7 @@ int send_msg(client_state client);
 void receive_msg(client_state client, message_s2c msg);
 void publish(client_state client);
 void subscribe(client_state client, bool unsub);
+void sub_list (client_state client);
 
 int main(int argc, char** argv) {
     assert(argc <= 2);
@@ -86,7 +88,7 @@ int main(int argc, char** argv) {
         client.send_buffer_len += send(client_socket, client.send_buffer+client.send_buffer_len , IO_BUFFER_SIZE, 0);
     }
     client.send_buffer_len = 0;
-    printf("[INFO] Logged in as %s \n", user);
+    printf("[INFO] Logging in\n[INFO] Help : H\n");
 
     int epoll = epoll_create1(0);
     assert (epoll > 0);
@@ -110,6 +112,7 @@ int main(int argc, char** argv) {
 
         for (int i = 0; i < remaining_events; i++) {
             struct epoll_event *event = &events[i];
+
             handle_event(&client, event);
         }
     }
@@ -117,7 +120,9 @@ int main(int argc, char** argv) {
 
 void handle_event(client_state* client, struct epoll_event* event) {
     if (event->events & EPOLLIN) { // Probablement un nouveau message sur un socket connecté à un client
+        client->cmd_offset = 0;
         if (event->data.fd == STDIN_FILENO) {
+            printf(">>");
             int len = read(STDIN_FILENO, client->cmd + client->cmd_offset, CMD_BUFFER_SIZE - client->cmd_offset);
             switch (len) {
                 case 0 :
@@ -126,11 +131,10 @@ void handle_event(client_state* client, struct epoll_event* event) {
                 case -1 :
                     printf("[WARNING] Error \n");
                 default :
-                    if (client->cmd[len -1] == '\n'){ // ENTER pressed
-                        client->cmd_offset += len;
-                        client->cmd[client->cmd_offset -1] = 0;
-                        send_msg(*client);
-                    } else client->cmd_offset += len;
+                    client->cmd_offset += len;
+                    client->cmd[client->cmd_offset -1] = 0;
+                    send_msg(*client);
+
 
             }
         } else if (event->data.fd == client->client_socket) {
@@ -170,6 +174,12 @@ int send_msg(client_state client) {
         case 'U':
             subscribe(client, true);
             return 1;
+        case 'L':
+            sub_list(client);
+            return 1;
+        case 'H':
+            printf("Publish : P <message>\nSubscribe : S <user>\nUnsubscribe : U <user>\nAll subscriptions : L\nHelp : H\n");
+            return 1;
         default :
             return 0;
     }
@@ -201,18 +211,20 @@ void receive_msg(client_state client, message_s2c msg){
             printf("[SERVER]");
             switch (msg.subscribe_result) {
                 case SUBSCRIBE_RESULT_OK :
-                    printf("Subscribed.\n");
+                    printf("Sub/Unsub OK\n");
                     break;
                 case SUBSCRIBE_RESULT_NOT_FOUND :
                     printf("User not found.\n");
                     break;
                 case SUBSCRIBE_RESULT_UNCHANGED :
-                    printf("Already subscribed to this user.\n");
+                    printf("Already done.\n");
                     break;
             }
             break;
         case MESSAGE_S2C_SUBSCRIPTION_ENTRY:
-            printf("[SERVER] You're subscribed to %s \n", msg.subscription_entry);
+            if (msg.subscription_entry[0] != 0) {
+                printf("[SERVER] You're subscribed to %s \n", msg.subscription_entry);
+            }
             break;
         case MESSAGE_S2C_KICK:
             printf("[SERVER]");
@@ -249,14 +261,26 @@ void subscribe(client_state client, bool unsub){
     message_c2s message;
     if (unsub){
         message.tag = MESSAGE_C2S_UNSUBSCRIBE_TO;
+        memset(&message.subscribe_to, 0, MAX_USERNAME_LENGTH);
+        memcpy(&message.subscribe_to, client.cmd+2, strnlen(client.cmd+2, MAX_USERNAME_LENGTH));
     } else {
         message.tag = MESSAGE_C2S_SUBSCRIBE_TO;
+        memset(&message.publish, 0, MAX_USERNAME_LENGTH);
+        memset(&message.unsubscribe_to, 0, MAX_USERNAME_LENGTH);
+        memcpy(&message.unsubscribe_to, client.cmd+2, strnlen(client.cmd+2, MAX_USERNAME_LENGTH));
     }
+    encode_c2s(&message, client.send_buffer);
 
-    memset(&message.publish, 0, MESSAGE_MAX_LENGTH);
-    memcpy(&message.publish, client.cmd+2, strnlen(client.cmd+2, MESSAGE_MAX_LENGTH));
+    while(client.send_buffer_len != IO_BUFFER_SIZE){
+        client.send_buffer_len += send(client.client_socket, client.send_buffer+client.send_buffer_len , IO_BUFFER_SIZE, 0);
+    }
+    client.send_buffer_len = 0;
+}
 
-    memset(client.cmd, 0, MESSAGE_MAX_LENGTH);
+void sub_list (client_state client){
+    message_c2s message;
+    message.tag = MESSAGE_C2S_LIST_SUBSCRIPTIONS;
+
     encode_c2s(&message, client.send_buffer);
 
     while(client.send_buffer_len != IO_BUFFER_SIZE){
