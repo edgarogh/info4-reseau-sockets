@@ -9,7 +9,6 @@
 #include <sys/epoll.h>
 #include <errno.h>
 #include <unistd.h>
-#include <wait.h>
 
 #include "codec.h"
 #include "twiit_list.h"
@@ -22,11 +21,11 @@ typedef struct {
     int epoll;
     twiiiiit_list* twiiiiit_list;
     char cmd[CMD_BUFFER_SIZE];
-    int cmd_offset;
+    size_t cmd_offset;
     char send_buffer[IO_BUFFER_SIZE];
-    int send_buffer_len;
+    size_t send_buffer_len;
     char receive_buffer[IO_BUFFER_SIZE];
-    int receive_buffer_len;
+    size_t receive_buffer_len;
 } client_state;
 
 void handle_event(client_state* client, struct epoll_event* event);
@@ -85,8 +84,10 @@ int main(int argc, char** argv) {
     memset(&client.send_buffer, 0, MESSAGE_MAX_LENGTH);
     encode_c2s(&message, client.send_buffer);
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        int temp = send(client_socket, client.send_buffer+client.send_buffer_len , IO_BUFFER_SIZE, 0);
-        if (temp > 0) client.send_buffer_len += temp;
+        size_t temp = send(client_socket, client.send_buffer+client.send_buffer_len , IO_BUFFER_SIZE, 0);
+        if (temp >= 0) client.send_buffer_len += temp;
+        else printf("Impossible de se connecter"); exit(0);
+
     }
     client.send_buffer_len = 0;
     printf("[INFO] Logging in\n[INFO] Help : H\n");
@@ -253,8 +254,9 @@ void publish(client_state client){
     encode_c2s(&message, client.send_buffer);
 
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        int temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
-        if (temp > 0) client.send_buffer_len += temp;
+        size_t temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
+        if (temp >= 0) client.send_buffer_len += temp;
+        else printf("Impossible d'envoyer le twiiiiit au serveur."); break;
     }
     client.send_buffer_len = 0;
 }
@@ -274,8 +276,9 @@ void subscribe(client_state client, bool unsub){
     encode_c2s(&message, client.send_buffer);
 
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        int temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
-        if (temp > 0) client.send_buffer_len += temp;
+        size_t temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
+        if (temp >= 0) client.send_buffer_len += temp;
+        else printf("Impossible d'envoyer l'abonnement au serveur."); break;
     }
     client.send_buffer_len = 0;
 }
@@ -287,8 +290,10 @@ void sub_list (client_state client){
     encode_c2s(&message, client.send_buffer);
 
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        int temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
-        if (temp > 0) client.send_buffer_len += temp;
+        size_t temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
+        if (temp >= 0) client.send_buffer_len += temp;
+        else printf("Impossible d'envoyer au serveur."); break;
+
     }
     client.send_buffer_len = 0;
 }
