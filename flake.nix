@@ -45,7 +45,7 @@
               after = [ "network.target" ];
               serviceConfig = {
                 WorkingDirectory = "${self.packages.${pkgs.system}.default}/";
-                ExecStart = "${self.packages.${pkgs.system}.default}/bin/twiiiiiter-server ${cfg.port}";
+                ExecStart = "${self.packages.${pkgs.system}.default}/bin/twiiiiiter-server ${builtins.toString cfg.port}";
                 Type = "simple";
               };
             };
