@@ -35,6 +35,19 @@ If you have NixOS, with [Flakes enabled](https://nixos.wiki/wiki/Flakes#NixOS) :
 }
 ```
 
+It will install the client and the server.
+
+You can also run the server as a systemd service with:
+
+```nix
+services.twiiiiiter-server = {
+  enable = true;
+  port = 7700; # optional  
+};
+```
+
+A demo server (powered by Nix) is running at `wp-corp.eu.org:7700`.
+
 ### Non-NixOS
 
 ```bash
