@@ -27,9 +27,8 @@
           };
         }
       )) // {
-        nixosModules.default = {
-          { config, pkgs, libs, ... }:
-          let cfg = config.services.twiiiiiter-server;
+        nixosModules.default = { config, pkgs, libs, ... }:
+          let cfg = config.services.twiiiiiter-server; in
           with lib;
           {
             options.services.twiiiiiter-server = {
@@ -37,8 +36,8 @@
               port = mkOption {
                 type = types.int;
                 description = "The TCP port the server should use";
-              }
-            }
+              };
+            };
             
             config.systemd.services.twiiiiiter-server = mkIf cfg.enable {
               description = "Twiiiiiter server";
@@ -50,7 +49,6 @@
                 Type = "simple";
               };
             };
-          }
-        };
+          };
       };
 }
