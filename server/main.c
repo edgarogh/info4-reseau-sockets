@@ -257,7 +257,7 @@ void process_message(server_state* server, user_list_node* user, const message_c
             send_message_immediately(fd, twiiiiit_msg);
             // ... and broadcast twiiiiit
             user_iterator followers_it = database_list_followers(username);
-            char follower_name[MAX_USERNAME_LENGTH];
+            char follower_name[MAX_USERNAME_LENGTH + 1];
             while (database_users_next(followers_it, follower_name)) {
                 user_list_node* follower_node = user_list_node_find_by_name(server->users, follower_name);
                 if (follower_node != NULL) {

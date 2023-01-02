@@ -36,8 +36,12 @@ void subscribe(client_state client, bool unsub);
 void sub_list (client_state client);
 
 int main(int argc, char** argv) {
-    assert(argc <= 2);
     uint16_t port;
+
+    if (argc != 2) {
+        printf("Usage: %s IP:PORT\n       %s IP\n", argv[0], argv[0]);
+        exit(1);
+    }
 
     char* host = argv[1];
     char* colon = strrchr(host, ':');
@@ -80,14 +84,17 @@ int main(int argc, char** argv) {
             .receive_buffer_len = 0,
     };
 
-    memcpy(&message.join_as, user, strnlen(user, MESSAGE_MAX_LENGTH));
+    memcpy(&message.join_as, user, strnlen(user, MAX_USERNAME_LENGTH));
     memset(&client.send_buffer, 0, MESSAGE_MAX_LENGTH);
     encode_c2s(&message, client.send_buffer);
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        size_t temp = send(client_socket, client.send_buffer+client.send_buffer_len , IO_BUFFER_SIZE, 0);
-        if (temp >= 0) client.send_buffer_len += temp;
-        else printf("Impossible de se connecter"); exit(0);
-
+        ssize_t temp = send(client_socket, client.send_buffer+client.send_buffer_len , IO_BUFFER_SIZE, 0);
+        if (temp >= 0) {
+            client.send_buffer_len += temp;
+        } else {
+            printf("Impossible de se connecter");
+            exit(0);
+        }
     }
     client.send_buffer_len = 0;
     printf("[INFO] Logging in\n[INFO] Help : H\n");
@@ -141,7 +148,7 @@ void handle_event(client_state* client, struct epoll_event* event) {
             }
         } else if (event->data.fd == client->client_socket) {
             // TODO if client.received... full
-            size_t already_read = client->receive_buffer_len;
+            ssize_t already_read = client->receive_buffer_len;
             ssize_t bytes_read = read(client->client_socket, client->receive_buffer + already_read, IO_BUFFER_SIZE - already_read);
             if (bytes_read > 0) {
                 client->receive_buffer_len += bytes_read;
@@ -210,7 +217,7 @@ void receive_msg(client_state client, message_s2c msg){
             break;
 
         case MESSAGE_S2C_SUBSCRIBE_RESULT:
-            printf("[SERVER]");
+            printf("[SERVER] ");
             switch (msg.subscribe_result) {
                 case SUBSCRIBE_RESULT_OK :
                     printf("Sub/Unsub OK\n");
@@ -229,7 +236,7 @@ void receive_msg(client_state client, message_s2c msg){
             }
             break;
         case MESSAGE_S2C_KICK:
-            printf("[SERVER]");
+            printf("[SERVER] ");
             switch (msg.kick) {
                 case KICK_REASON_CLOSING :
                     printf("Kicked : the server closed the connection.\n");
@@ -254,7 +261,7 @@ void publish(client_state client){
     encode_c2s(&message, client.send_buffer);
 
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        size_t temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
+        ssize_t temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
         if (temp >= 0) client.send_buffer_len += temp;
         else printf("Impossible d'envoyer le twiiiiit au serveur."); break;
     }
@@ -276,7 +283,7 @@ void subscribe(client_state client, bool unsub){
     encode_c2s(&message, client.send_buffer);
 
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        size_t temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
+        ssize_t temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
         if (temp >= 0) client.send_buffer_len += temp;
         else printf("Impossible d'envoyer l'abonnement au serveur."); break;
     }
@@ -290,7 +297,7 @@ void sub_list (client_state client){
     encode_c2s(&message, client.send_buffer);
 
     while(client.send_buffer_len != IO_BUFFER_SIZE){
-        size_t temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
+        ssize_t temp = send(client.client_socket, client.send_buffer , IO_BUFFER_SIZE, 0);
         if (temp >= 0) client.send_buffer_len += temp;
         else printf("Impossible d'envoyer au serveur."); break;
 
