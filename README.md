@@ -85,3 +85,18 @@ make
 
 ./client/twiiiiiter-client 127.0.0.1
 ```
+
+## Utilisation
+
+> requires a running twiiiiit server
+
+1. Connection with an user id.
+2. Commands
+```
+Publish a twiiiiit : P <message>
+Subscribe: S <user>
+Unsubscribe : U <user>
+List all your subscriptions : L
+Help : H
+```
+3. Close the program to disconnect
