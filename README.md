@@ -1,5 +1,7 @@
 # Twiiiiiter
 
+*Mattéo DECORSAIRE, Ana GELEZ, Edgar ONGHENA*
+
 A simple TUI Twitter clone written in C, for the TR class at Polytech Grenoble.
 
 ## Installing with Nix
