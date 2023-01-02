@@ -2,6 +2,7 @@
 #define _CODEC_H_
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "constants.h"
 

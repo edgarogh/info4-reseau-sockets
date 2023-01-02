@@ -5,6 +5,7 @@ add_executable(${EXE_NAME}
     database.c
     database.h
     server.h
+    twiiiiiter_assert.h
     user_list.c
 )
 target_link_libraries(${EXE_NAME} common)
@@ -12,7 +13,7 @@ target_link_libraries(${EXE_NAME} common)
 # SQLite
 include(FindSQLite3)
 include_directories(${SQLite3_INCLUDE_DIRS})
-target_link_libraries(${EXE_NAME} ${SQLite3_LIBRARIES})
+target_link_libraries(${EXE_NAME} SQLite::SQLite3)
 
 # Pour embarquer le fichier "init_db.sql" dans le binaire
 add_library(init_db_sql init_db_sql.o)

@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <signal.h>
@@ -15,6 +14,7 @@
 #include "constants.h"
 #include "database.h"
 #include "server.h"
+#include "twiiiiiter_assert.h"
 
 // Maximum d'évènements retournés par epoll lors d'un appel système
 #define EPOLL_MAX_EVENTS 16
@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
     if (argc == 2) {
         port = strtoul(argv[1], NULL, 10);
     } else {
-        port = 7878;
+        port = DEFAULT_PORT;
     }
 
     int server_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -102,6 +102,12 @@ int main(int argc, char** argv) {
 void handle_event(server_state* server, struct epoll_event* event) {
     if (event->data.fd == server->server_socket) { // Nouvelle connexion
         if (event->events & EPOLLHUP || event->events & EPOLLERR) {
+            int error = 0;
+            socklen_t errlen = sizeof(error);
+            if (getsockopt(event->data.fd, SOL_SOCKET, SO_ERROR, (void *)&error, &errlen) == 0) {
+                printf("[ERROR] HUP/ERR: %s\n", strerror(error));
+            }
+
             close(server->server_socket);
             exit(1);
         }
@@ -251,7 +257,7 @@ void process_message(server_state* server, user_list_node* user, const message_c
             send_message_immediately(fd, twiiiiit_msg);
             // ... and broadcast twiiiiit
             user_iterator followers_it = database_list_followers(username);
-            char follower_name[MAX_USERNAME_LENGTH];
+            char follower_name[MAX_USERNAME_LENGTH + 1];
             while (database_users_next(followers_it, follower_name)) {
                 user_list_node* follower_node = user_list_node_find_by_name(server->users, follower_name);
                 if (follower_node != NULL) {
